@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Authenticate an Office 365 user with ADAL JS</title>
+		<meta http-equiv="Content-type" content="text/html; charset=utf-8" />
+		<style>body{font:normal normal normal 14px/1.5em "Century Gothic", sans-serif;}</style>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+		<script src="https://secure.aadcdn.microsoftonline-p.com/lib/1.0.0/js/adal.js"></script>
+		<script type="text/javascript">
+			$(document).ready(function() {
+				"use strict";
+				
+				// Assign variables
+				var variables = {
+					// Domain of Azure AD tenant
+					azureAD: "SPE372945.onmicrosoft.com",
+					// ClientId of Azure AD application principal
+					clientId: "71ab1320-91d8-414e-a925-2e29a6624812",
+					// GUID of SharePoint list
+					listId: "837EA01A-7B1D-4AA5-8DC3-82DED0D095A1",
+					// Name of SharePoint tenant
+					sharePointTenant: "SPE372945"
+				}
+				
+				// Create config and get AuthenticationContext
+				window.config = {
+					tenant: variables.azureAD,
+					clientId: variables.clientId,
+					postLogoutRedirectUri: window.location.origin,
+					endpoints: {
+						graphApiUri: "https://graph.microsoft.com",
+						sharePointUri: "https://" + variables.sharePointTenant + ".sharepoint.com",
+					},
+					cacheLocation: "localStorage"
+				};
+				var authContext = new AuthenticationContext(config);
+				
+				var isCallback = authContext.isCallback(window.location.hash);
+				authContext.handleWindowCallback();
+				
+				if (isCallback && !authContext.getLoginError()) {
+					window.location = authContext._getItem(authContext.CONSTANTS.STORAGE.LOGIN_REQUEST);
+				}
+				
+				var user = authContext.getCachedUser();
+				if (!user) {
+					authContext.login();
+				}
+				
+				// Get OneDrive documents of current user with AuthenticationContext of Graph API 
+				authContext.acquireToken(config.endpoints.graphApiUri, function (error, token) {
+					if (error || !token) {
+						console.log("ADAL error occurred: " + error);
+						return;
+					}
+					else {
+						var filesUri = config.endpoints.graphApiUri + "/v1.0/me/drive/root/children";
+						
+						$.ajax({
+						type: "GET",
+						url: filesUri,
+						headers: {
+							"Authorization": "Bearer " + token
+						}
+						}).done(function (response) {
+							console.log("Successfully fetched files from OneDrive.");
+							var items = response.value;
+							for (var i = 0; i < items.length; i++){
+								console.log(items[i].name);
+								$("#OneDrive").append("<li>" + items[i].name + "</li>");
+							}
+						}).fail(function () {
+							console.log("Fetching files from OneDrive failed.");
+						});
+					}
+				});
+				
+								// Get OneDrive documents of current user with AuthenticationContext of Graph API 
+				authContext.acquireToken(config.endpoints.graphApiUri, function (error, token) {
+					if (error || !token) {
+						console.log("ADAL error occurred: " + error);
+						return;
+					}
+					else {
+						//https://graph.microsoft.com/beta/sites/root/lists/439acdd2-00d2-4dfc-9955-c21ec7ce6ca8/items
+						var filesUri = config.endpoints.graphApiUri + "/beta/sites/root/lists/439acdd2-00d2-4dfc-9955-c21ec7ce6ca8/items?expand=fields";
+						
+						$.ajax({
+						type: "GET",
+						url: filesUri,
+						headers: {
+							"Authorization": "Bearer " + token
+						}
+						}).done(function (response) {
+							console.log("Successfully fetched files from OneDrive.");
+							var items = response.value;
+							for (var i = 0; i < items.length; i++){
+								console.log(items[i].name);
+								$("#SharePoint").append("<li>" + items[i].fields.LinkFilename + "</li>");
+							}
+						}).fail(function () {
+							console.log("Fetching files from OneDrive failed.");
+						});
+					}
+				});
+				
+				// Get SharePoint documents of list with AuthenticationContext of SharePoint
+				// authContext.acquireToken(config.endpoints.sharePointUri, function (error, token) {
+				// 	if (error || !token) {
+				// 		console.log("ADAL error occurred: " + error);
+				// 		return;
+				// 	}
+				// 	else {
+				// 		var listUri = config.endpoints.sharePointUri + "/_api/web/lists('" + variables.listId + "')/items?$select=Title";
+
+				// 		$.ajax({
+				// 		type: "GET",
+				// 		url: listUri,
+				// 		headers: {
+				// 			"Authorization": "Bearer " + token,
+				// 			"accept": "application/json;odata=verbose"
+				// 		}
+				// 		}).done(function (response) {
+				// 			console.log("Successfully fetched list from SharePoint.");
+				// 			var items = response.d.results;
+				// 			for (var i = 0; i < items.length; i++){
+				// 				console.log(items[i].Title);
+				// 				$("#SharePoint").append("<li>" + items[i].Title + "</li>");
+				// 			}
+				// 		}).fail(function () {
+				// 			console.log("Fetching list from SharePoint failed.");
+				// 		});
+				// 	}
+				// });
+			});
+		</script>
+	</head>
+	<body>
+		<h1>Authenticate an Office 365 user with ADAL JS</h1>
+		<h2>OneDrive documents</h2>
+		<ul id="OneDrive">
+		</ul>
+		<h2>SharePoint documents</h2>
+		<ul id="SharePoint">
+		</ul>
+	</body>
+</html>
