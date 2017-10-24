@@ -10,6 +10,12 @@
 			$(document).ready(function() {
 				"use strict";
 				
+ 				// This login.microsoftonline.com page can’t be found
+
+				// No webpage was found for the web address: https://login.microsoftonline.com/https:/umassdevelop.sharepoint.com/oauth2/authorize?response_type=id_token&client_id=521a700c-ba74-41b0-950f-b170b0931b2e&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2F&state=604e757f-ff16-4af5-bc47-5b3dc7f60449&x-client-SKU=Js&x-client-Ver=1.0.0&nonce=dd55ed0e-465b-42be-925a-41fbf4c87189
+				// HTTP ERROR 404
+
+
 				// Assign variables
 				var variables = {
 					// Domain of Azure AD tenant
@@ -75,7 +81,37 @@
 					}
 				});
 				
-								// Get OneDrive documents of current user with AuthenticationContext of Graph API 
+				// Get Calendar events of current user with AuthenticationContext of Graph API 
+				authContext.acquireToken(config.endpoints.graphApiUri, function (error, token) {
+					if (error || !token) {
+						console.log("ADAL error occurred: " + error);
+						return;
+					}
+					else {
+						//https://graph.microsoft.com/beta/sites/root/lists/439acdd2-00d2-4dfc-9955-c21ec7ce6ca8/items
+						var filesUri = config.endpoints.graphApiUri + "/v1.0/me/calendar";
+						
+						$.ajax({
+						type: "GET",
+						url: filesUri,
+						headers: {
+							"Authorization": "Bearer " + token
+						}
+						}).done(function (response) {
+							console.log("Successfully fetched calendar");
+							var items = response.value;
+							$("#calendar").append(JSON.stringify(response));
+							// for (var i = 0; i < items.length; i++){
+							// 	console.log(items[i].name);
+							// 	$("#SharePoint").append("<li>" + items[i].fields.LinkFilename + "</li>");
+							// }
+						}).fail(function () {
+							console.log("Fetching calendar for user failed.");
+						});
+					}
+				});
+
+				// Get List documents of current user with AuthenticationContext of Graph API 
 				authContext.acquireToken(config.endpoints.graphApiUri, function (error, token) {
 					if (error || !token) {
 						console.log("ADAL error occurred: " + error);
@@ -99,7 +135,7 @@
 								$("#SharePoint").append("<li>" + items[i].fields.LinkFilename + "</li>");
 							}
 						}).fail(function () {
-							console.log("Fetching files from OneDrive failed.");
+							console.log("Fetching files from list failed.");
 						});
 					}
 				});
@@ -142,6 +178,9 @@
 		</ul>
 		<h2>SharePoint documents</h2>
 		<ul id="SharePoint">
+		</ul>
+		<h2>Calendar 1234</h2>
+		<ul id="calendar">
 		</ul>
 	</body>
 </html>

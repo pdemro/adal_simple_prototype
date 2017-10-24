@@ -1,3 +1,5 @@
+module.paths.push('/home/phillip/.nvm/versions/node/v6.11.3/lib/node_modules/express/lib');
+
 var express = require("express");
 
 var app = express();
